@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/dustin/go-humanize"
+	"github.com/schollz/progressbar/v3"
 )
 
 type Dir struct {
@@ -103,6 +104,9 @@ func main() {
 		}
 	}
 
+	// setup progress bar based on number of subdirectories
+	bar := progressbar.Default(int64(len(dirNames)))
+
 	// find the total size of each subdirectory
 	var dirs []Dir
 
@@ -113,10 +117,15 @@ func main() {
 		sizeReadable := humanize.Bytes(uint64(size))
 		dir := Dir{d, path, size, sizeReadable}
 		dirs = append(dirs, dir)
-		fmt.Printf("%s = %s\n", dir.Name, dir.SizeString)
+		bar.Add(1)
 	}
 
-	fmt.Printf("Search complete after finding %d top-level subdirectories.\n", len(dirs))
+	fmt.Printf("Search complete after finding %d top-level subdirectories:\n", len(dirNames))
+
+	// print results
+	for _, dir := range dirs {
+		fmt.Printf("%s = %s\n", dir.Name, dir.SizeString)
+	}
 
 	// write optional output file
 	if *saveResults != "none" {
