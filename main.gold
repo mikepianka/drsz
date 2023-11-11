@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/csv"
 	"flag"
 	"fmt"
 	"log"
@@ -11,68 +10,6 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/schollz/progressbar/v3"
 )
-
-type Dir struct {
-	Name       string
-	FullPath   string
-	SizeBytes  int64
-	SizeString string
-}
-
-func dirSize(path string) int64 {
-	var size int64
-
-	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() {
-			size += info.Size()
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		log.Fatalf("Error searching in %q: %v\n", path, err)
-	}
-
-	return size
-}
-
-func createOutputFile(dirs []Dir, filepath string) {
-	csvFile, err := os.Create(filepath)
-
-	if err != nil {
-		log.Fatalf("Failed to create output file: %q: %v\n", filepath, err)
-	}
-
-	csvWriter := csv.NewWriter(csvFile)
-
-	defer func() {
-		csvWriter.Flush()
-		csvFile.Close()
-	}()
-
-	header := []string{"directory", "bytes"}
-	err = csvWriter.Write(header)
-
-	if err != nil {
-		log.Fatalf("Failed to write header to file: %q: %v\n", filepath, err)
-	}
-
-	for _, dir := range dirs {
-		row := []string{dir.FullPath, fmt.Sprintf("%d", dir.SizeBytes)}
-		err = csvWriter.Write(row)
-
-		if err != nil {
-			log.Fatalf("Failed to write row %q to file: %q: %v\n", dir.FullPath, filepath, err)
-		}
-	}
-
-	fmt.Printf("Created output file: %q\n", filepath)
-}
 
 func main() {
 	saveResults := flag.String("o", "none", "save output to the provided CSV filepath")
