@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -165,14 +166,39 @@ func (r *RootDir) FindTops() error {
 }
 
 func (r *RootDir) CalcStats() error {
-	// setup progress bar based on number of dirs
-	bar := progressbar.Default(int64(len(r.TopDirs)))
+	bar := progressbar.Default(int64(len(r.TopDirs))) // setup progress bar based on number of dirs
+	var wg sync.WaitGroup                             // setup wait group for tracking dir calc worker progress
+	errChan := make(chan error, len(r.TopDirs))       // setup error channel for worker errors
+
+	// TODO ~ implement semaphore to limit concurrency so hard drive does not get overwhelmed
+
 	for _, d := range r.TopDirs {
-		err := d.WalkCalc()
+		wg.Add(1) // increment wait group
+		go func(d *Dir) {
+			defer wg.Done()             // decrement wait group once work complete
+			time.Sleep(3 * time.Second) // add a synthetic wait to simulate work
+			errChan <- d.WalkCalc()     // send error result to channel
+		}(d)
+	}
+
+	// close the err channel after wait group finishes
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	var errors []error
+	// main routine starts ranging over errors immediately, push to slice
+	for err := range errChan {
+		bar.Add(1) // increment progress bar
 		if err != nil {
-			return err
+			errors = append(errors, err)
 		}
-		bar.Add(1)
+	}
+
+	if len(errors) != 0 {
+		// errors encountered, just return first one for simplicity for now
+		return errors[0]
 	}
 
 	// print results
