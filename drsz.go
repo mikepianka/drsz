@@ -168,37 +168,35 @@ func (r *RootDir) FindTops() error {
 func (r *RootDir) CalcStats() error {
 	bar := progressbar.Default(int64(len(r.TopDirs))) // setup progress bar based on number of dirs
 	var wg sync.WaitGroup                             // setup wait group for tracking dir calc worker progress
-	errChan := make(chan error, len(r.TopDirs))       // setup error channel for worker errors
+	var mu sync.Mutex                                 // setup mutex to protect errors slice
+	var errors []error                                // slice to hold any errors encountered
+	MAX_CONCURR := 4
 
-	// TODO ~ implement semaphore to limit concurrency so hard drive does not get overwhelmed
+	// Implement semaphore to limit concurrency
+	sem := make(chan struct{}, MAX_CONCURR) // MAX_CONCURR is the max number of concurrent goroutines
 
-	for _, d := range r.TopDirs {
+	for i, d := range r.TopDirs {
 		wg.Add(1) // increment wait group
-		go func(d *Dir) {
+		go func(d *Dir, i int) {
 			defer wg.Done()             // decrement wait group once work complete
-			time.Sleep(3 * time.Second) // add a synthetic wait to simulate work
-			errChan <- d.WalkCalc()     // send error result to channel
-		}(d)
+			sem <- struct{}{}           // acquire a concurrency token when performing intensive i/o
+			time.Sleep(5 * time.Second) // add a synthetic wait to simulate work
+			_ = d.WalkCalc()
+			<-sem      // release token
+			if i > 2 { // switch with err != nil when done testing
+				mu.Lock()
+				errors = append(errors, fmt.Errorf("uh oh %d", i)) // collect error
+				mu.Unlock()
+			}
+			bar.Add(1) // increment progress bar
+		}(d, i)
 	}
 
-	// close the err channel after wait group finishes
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
-
-	var errors []error
-	// main routine starts ranging over errors immediately, push to slice
-	for err := range errChan {
-		bar.Add(1) // increment progress bar
-		if err != nil {
-			errors = append(errors, err)
-		}
-	}
+	wg.Wait() // wait for goroutines to finish
 
 	if len(errors) != 0 {
 		// errors encountered, just return first one for simplicity for now
-		return errors[0]
+		return fmt.Errorf("encountered %d errors, the first being: %v", len(errors), errors[0])
 	}
 
 	// print results
