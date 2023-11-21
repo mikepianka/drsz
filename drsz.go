@@ -14,21 +14,17 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
-// NewDir returns a pointer to a new Dir initialized with dirPath.
-func NewDir(dirPath string) (*Dir, error) {
-	d := &Dir{}
-	err := d.SetPath(dirPath)
-	if err != nil {
-		return nil, err
-	}
-	return d, nil
-}
-
 // Dir holds information about a directory.
 type Dir struct {
 	AbsPath      string
 	SizeBytes    int64
 	LastModified time.Time
+}
+
+// RootDir holds information about the top level directories it contains.
+type RootDir struct {
+	Dir
+	TopDirs []*Dir
 }
 
 // SizeString returns the size of the directory as a human readable string.
@@ -136,11 +132,7 @@ func (r RootDir) ExportCSV(csvPath string) error {
 	return nil
 }
 
-type RootDir struct {
-	Dir
-	TopDirs []*Dir
-}
-
+// FindTops finds the top level directories within the provided root dir.
 func (r *RootDir) FindTops() error {
 	contents, err := os.ReadDir(r.AbsPath)
 	if err != nil {
@@ -165,31 +157,34 @@ func (r *RootDir) FindTops() error {
 	return nil
 }
 
-func (r *RootDir) CalcStats() error {
+// CalcStats calculates the top level directory stats for the provided root dir by recursively walking through.
+func (r *RootDir) CalcStats(concLimit uint8) error {
 	bar := progressbar.Default(int64(len(r.TopDirs))) // setup progress bar based on number of dirs
 	var wg sync.WaitGroup                             // setup wait group for tracking dir calc worker progress
 	var mu sync.Mutex                                 // setup mutex to protect errors slice
 	var errors []error                                // slice to hold any errors encountered
-	MAX_CONCURR := 4
+
+	if concLimit == 0 {
+		concLimit = 1 // if concLimit is zero, only run goroutines one at a time
+	}
 
 	// Implement semaphore to limit concurrency
-	sem := make(chan struct{}, MAX_CONCURR) // MAX_CONCURR is the max number of concurrent goroutines
+	sem := make(chan struct{}, concLimit) // concLimit is the max number of concurrent goroutines
 
-	for i, d := range r.TopDirs {
+	for _, d := range r.TopDirs {
 		wg.Add(1) // increment wait group
-		go func(d *Dir, i int) {
-			defer wg.Done()             // decrement wait group once work complete
-			sem <- struct{}{}           // acquire a concurrency token when performing intensive i/o
-			time.Sleep(5 * time.Second) // add a synthetic wait to simulate work
-			_ = d.WalkCalc()
-			<-sem      // release token
-			if i > 2 { // switch with err != nil when done testing
+		go func(d *Dir) {
+			defer wg.Done()   // decrement wait group once work complete
+			sem <- struct{}{} // acquire a concurrency token when performing intensive i/o
+			err := d.WalkCalc()
+			if err != nil {
 				mu.Lock()
-				errors = append(errors, fmt.Errorf("uh oh %d", i)) // collect error
+				errors = append(errors, err) // collect error
 				mu.Unlock()
 			}
+			<-sem      // release token
 			bar.Add(1) // increment progress bar
-		}(d, i)
+		}(d)
 	}
 
 	wg.Wait() // wait for goroutines to finish
@@ -227,4 +222,14 @@ func NewRootDir(dirPath string) (*RootDir, error) {
 		return nil, err
 	}
 	return r, nil
+}
+
+// NewDir returns a pointer to a new Dir initialized with dirPath.
+func NewDir(dirPath string) (*Dir, error) {
+	d := &Dir{}
+	err := d.SetPath(dirPath)
+	if err != nil {
+		return nil, err
+	}
+	return d, nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -13,6 +14,7 @@ type Config struct {
 	RootDir   string
 	CreateCsv bool
 	CsvPath   string
+	ConcLimit uint8
 }
 
 // cli parses command line arguments into validated config.
@@ -20,6 +22,7 @@ func cli() Config {
 	cfg := Config{}
 
 	csvArg := flag.String("o", "none", "save output to the provided CSV filepath")
+	concArg := flag.Int("c", 0, "number of concurrent directory size searches")
 	flag.Parse()
 	rootArg := flag.Arg(0)
 
@@ -58,6 +61,18 @@ func cli() Config {
 		}
 	}
 
+	if *concArg < 0 {
+		// can't have negative conc limit, set to 0
+		fmt.Println("WARNING: Negative concurrency limit was provided; setting to 0.")
+		cfg.ConcLimit = 0
+	} else if *concArg > 255 {
+		// clamp to 0-255
+		fmt.Println("WARNING: Large concurrency limit was provided; clamping to 255.")
+		cfg.ConcLimit = 255
+	} else {
+		cfg.ConcLimit = uint8(*concArg)
+	}
+
 	return cfg
 }
 
@@ -74,7 +89,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = root.CalcStats()
+	err = root.CalcStats(cfg.ConcLimit)
 	if err != nil {
 		log.Fatal(err)
 	}
