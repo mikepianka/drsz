@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"text/tabwriter"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -194,10 +195,17 @@ func (r *RootDir) CalcStats(concLimit uint8) error {
 		return fmt.Errorf("encountered %d errors, the first being: %v", len(errors), errors[0])
 	}
 
-	// print results
+	// print results using tabwriter
+	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', 0)
+	// add blank row
+	fmt.Fprintln(tw, "")
+	// add header
+	fmt.Fprintf(tw, "Name\tSize\tLast_Modified\n")
+	// add info
 	for _, d := range r.TopDirs {
-		fmt.Printf("%s = %s\n", d.Name(), d.SizeString())
+		fmt.Fprintf(tw, "%s\t%s\t%s\n", d.Name(), d.SizeString(), d.LastModified.Local().String())
 	}
+	tw.Flush()
 
 	return nil
 }
