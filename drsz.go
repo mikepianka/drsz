@@ -214,12 +214,7 @@ func (r *RootDir) CalcStats(concLimit uint8) error {
 func IsCsvPath(filepath string) bool {
 	clean := path.Clean(filepath)
 	ext := strings.ToLower(path.Ext(clean))
-
-	if ext != ".csv" {
-		return false
-	}
-
-	return true
+	return ext == ".csv"
 }
 
 // NewRootDir returns a pointer to a new RootDir initialized with dirPath.
