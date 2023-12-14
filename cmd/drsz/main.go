@@ -31,7 +31,8 @@ func cli() Config {
 		log.Fatal(
 			"You did not pass a directory argument.\n" +
 				"Example usage: drsz ./some_directory\n" +
-				"Example usage (creates output file): drsz -o ./results.csv ./some_directory")
+				"Example usage (creates output file): drsz -o ./results.csv ./some_directory\n" +
+				"Example usage (5x concurrent searches): drsz -c 5 ./some_directory")
 	}
 
 	cfg.RootDir = path.Clean(rootArg)
