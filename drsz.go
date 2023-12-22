@@ -160,10 +160,10 @@ func (r *RootDir) FindTops() error {
 
 // CalcStats calculates the top level directory stats for the provided root dir by recursively walking through.
 func (r *RootDir) CalcStats(concLimit uint8) error {
-	bar := progressbar.Default(int64(len(r.TopDirs))) // setup progress bar based on number of dirs
-	var wg sync.WaitGroup                             // setup wait group for tracking dir calc worker progress
-	var mu sync.Mutex                                 // setup mutex to protect errors slice
-	var errors []error                                // slice to hold any errors encountered
+	bar := progressbar.NewOptions64(int64(len(r.TopDirs)), progressbar.OptionSetDescription("Calculating..."), progressbar.OptionSetPredictTime(true), progressbar.OptionShowCount()) // setup progress bar based on number of dirs
+	var wg sync.WaitGroup                                                                                                                                                             // setup wait group for tracking dir calc worker progress
+	var mu sync.Mutex                                                                                                                                                                 // setup mutex to protect errors slice
+	var errors []error                                                                                                                                                                // slice to hold any errors encountered
 
 	if concLimit == 0 {
 		concLimit = 1 // if concLimit is zero, only run goroutines one at a time
