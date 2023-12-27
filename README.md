@@ -1,29 +1,41 @@
 # drsz
+
 A small CLI tool for finding the size of subdirectories.
 
 ## About
+
 Given a directory path to begin searching from, **drsz** will calculate the total size in bytes of each top-level subdirectory. Handy if you want to quickly find what directories might be using up alot of storage space on your drive.
 
 ## Usage
+
 At the command line run `./drsz ./some_directory`. **drsz** will recursively search through each top-level subdirectory in `./some_directory`, add up the file sizes of the contents, and then print the total size to the console.
 
+For example:
+
 ```
->>> drsz ./docker-geoserver
-Calculating top-level subdirectory sizes in ./docker-geoserver/*
-.git = 982 kB
-build_data = 181 kB
-clustering = 1.5 kB
-resources = 670 B
-scripts = 24 kB
-volume = 123.4 MB
-Search complete after finding 6 top-level subdirectories.
+>>> drsz ./spruce
+Found 3 top level directories in /Users/mike/spruce
+Calculating... 100% |████████████████████████████████████████| (3/3)
+Name     Size       Last_Modified
+.git     62 kB      2023-11-30 22:03:12.990783711 -0500 EST
+bin      4.9 MB     2023-12-01 04:13:18.166776944 -0500 EST
+docs     47 kB      2023-11-30 21:53:10.93936325 -0500 EST
+Completed in 1.88025ms
 ```
 
-If you want the output saved to a CSV file you can pass an `-o` argument: `./drsz -o ./output.csv ./some_directory`. Note that you need to pass the `-o` argument *before* the directory path. The CSV file will have two columns with the subdirectory paths and total sizes in bytes.
+### Usage Options
+
+Default usage which outputs results to the terminal:
+`drsz ./some_directory`
+
+Write results to an output file:
+`drsz -o ./results.csv ./some_directory`
+
+Speed up the program with 5x concurrent directory searches. Using this option will increase the read load on the drive being searched.
+`drsz -c 5 ./some_directory`
 
 ## Installation
-Linux and Windows amd64 binaries have been pre-built and are available in Releases. Simply download one and follow the Usage instructions above.
 
-At the command line you can either run the executable by providing the full filepath to it, or make an alias in your `~/.bashrc` on Linux (or your Windows path) to create a shortened `drsz` command for more convenient access.
+Mac, Linux, and Windows binaries have been pre-built and are available in Releases. Simply download one and follow the Usage instructions above. Alternatively, clone the repo and run `make` to build from source.
 
-You can also build from source using the `build.sh` script that has been preconfigured to create Linux and Windows binaries.
+At the command line you can either run the executable by providing the full filepath to it, or make an alias in your path to the binary to create a shortened `drsz` command for more convenient access.
