@@ -236,3 +236,34 @@ func NewDir(dirPath string) (*Dir, error) {
 	}
 	return d, nil
 }
+
+// Run will execute a drsz search of the provided root dir; optionally creating an output file with the results.
+func Run(rootDir string, concLimit uint8, createFile bool, outputFile string) error {
+	// initialize root directory
+	root, err := NewRootDir(rootDir)
+	if err != nil {
+		return err
+	}
+
+	// find the top-level dirs within root dir
+	err = root.FindTops()
+	if err != nil {
+		return err
+	}
+
+	// calculate stats for each top-level dir
+	err = root.CalcStats(concLimit)
+	if err != nil {
+		return err
+	}
+
+	// export CSV if requested
+	if createFile {
+		err = root.ExportCSV(outputFile)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

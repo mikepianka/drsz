@@ -85,30 +85,10 @@ func main() {
 	// start timer
 	now := time.Now()
 
-	// initialize root directory
-	root, err := drsz.NewRootDir(cfg.RootDir)
+	// run search
+	err := drsz.Run(cfg.RootDir, cfg.ConcLimit, cfg.CreateCsv, cfg.CsvPath)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	// find the top-level dirs within root dir
-	err = root.FindTops()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// calculate stats for each top-level dir
-	err = root.CalcStats(cfg.ConcLimit)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// export CSV if requested
-	if cfg.CreateCsv {
-		err = root.ExportCSV(cfg.CsvPath)
-		if err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	// print elapsed time
