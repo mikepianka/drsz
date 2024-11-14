@@ -24,7 +24,14 @@ func cli() Config {
 
 	csvArg := flag.String("o", "none", "save output to the provided CSV filepath")
 	concArg := flag.Int("c", 0, "number of concurrent directory size searches")
+	verArg := flag.Bool("v", false, "program version")
 	flag.Parse()
+
+	if *verArg {
+		fmt.Printf("drsz %s\n", drsz.Version)
+		os.Exit(0)
+	}
+
 	rootArg := flag.Arg(0)
 
 	// validate root arg

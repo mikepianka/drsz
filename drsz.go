@@ -190,11 +190,6 @@ func (r *RootDir) CalcStats(concLimit uint8) error {
 
 	wg.Wait() // wait for goroutines to finish
 
-	if len(errors) != 0 {
-		// errors encountered, just return first one for simplicity for now
-		return fmt.Errorf("encountered %d errors, the first being: %v", len(errors), errors[0])
-	}
-
 	// print results using tabwriter
 	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', 0)
 	// add blank row
@@ -205,6 +200,16 @@ func (r *RootDir) CalcStats(concLimit uint8) error {
 	for _, d := range r.TopDirs {
 		fmt.Fprintf(tw, "%s\t%s\t%s\n", d.Name(), d.SizeString(), d.LastModified.Local().String())
 	}
+
+	// print errors and their associated directories
+	if len(errors) != 0 {
+		fmt.Fprintln(tw, "")
+		fmt.Fprintln(tw, "***WARN*** Processing failed on the following directories ***WARN***")
+		for i, err := range errors {
+			fmt.Fprintf(tw, "%d: %v\n", i+1, err)
+		}
+	}
+
 	tw.Flush()
 
 	return nil
