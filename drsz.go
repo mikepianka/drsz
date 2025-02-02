@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"sync"
 	"text/tabwriter"
 	"time"
@@ -213,13 +212,6 @@ func (r *RootDir) CalcStats(concLimit uint8) error {
 	tw.Flush()
 
 	return nil
-}
-
-// IsCsvPath checks that the provided filepath is to a CSV.
-func IsCsvPath(filepath string) bool {
-	clean := path.Clean(filepath)
-	ext := strings.ToLower(path.Ext(clean))
-	return ext == ".csv"
 }
 
 // NewRootDir returns a pointer to a new RootDir initialized with dirPath.
