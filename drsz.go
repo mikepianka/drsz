@@ -5,91 +5,16 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"sync"
 	"text/tabwriter"
-	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/schollz/progressbar/v3"
 )
-
-// Dir holds information about a directory.
-type Dir struct {
-	AbsPath      string
-	SizeBytes    int64
-	LastModified time.Time
-}
 
 // RootDir holds information about the top level directories it contains.
 type RootDir struct {
 	Dir
 	TopDirs []*Dir
-}
-
-// SizeString returns the size of the directory as a human readable string.
-func (d Dir) SizeString() string {
-	return humanize.Bytes(uint64(d.SizeBytes))
-}
-
-// Name returns the name of the directory.
-func (d Dir) Name() string {
-	return path.Base(d.AbsPath)
-}
-
-// SetPath resolves an absolute path, confirms it is an accessible directory, and sets it in the struct.
-func (d *Dir) SetPath(dirPath string) error {
-	abs, err := filepath.Abs(dirPath)
-	if err != nil {
-		return err
-	}
-
-	info, err := os.Stat(abs)
-	if err != nil {
-		return err
-	}
-
-	// no issues reading path, make sure it's a dir
-	if !info.IsDir() {
-		return fmt.Errorf("provided path is not a directory")
-	}
-
-	// path exists
-	d.AbsPath = abs
-	return nil
-}
-
-// WalkCalc recursively walks through the directory, calculating its total size and the most recent file modification time.
-func (d *Dir) WalkCalc() error {
-	var size int64
-	var lastMod time.Time
-
-	err := filepath.Walk(d.AbsPath, func(_ string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() {
-			// found a file
-			// add to total size
-			size += info.Size()
-			// set last modified time if it's more recent
-			mod := info.ModTime()
-			if mod.After(lastMod) {
-				lastMod = mod
-			}
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return fmt.Errorf("error while searching in %s: %v", d.AbsPath, err)
-	}
-
-	d.SizeBytes = size
-	d.LastModified = lastMod
-	return nil
 }
 
 // ExportCSV creates an output CSV file containing directory information at the provided path.
@@ -216,22 +141,12 @@ func (r *RootDir) CalcStats(concLimit uint8) error {
 
 // NewRootDir returns a pointer to a new RootDir initialized with dirPath.
 func NewRootDir(dirPath string) (*RootDir, error) {
-	r := &RootDir{}
-	err := r.SetPath(dirPath)
+	absPath, err := resolveDirPath(dirPath)
 	if err != nil {
 		return nil, err
 	}
+	r := &RootDir{Dir: Dir{AbsPath: absPath}}
 	return r, nil
-}
-
-// NewDir returns a pointer to a new Dir initialized with dirPath.
-func NewDir(dirPath string) (*Dir, error) {
-	d := &Dir{}
-	err := d.SetPath(dirPath)
-	if err != nil {
-		return nil, err
-	}
-	return d, nil
 }
 
 // Run will execute a drsz search of the provided root dir; optionally creating an output file with the results.
