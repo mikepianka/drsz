@@ -45,7 +45,7 @@ func (r RootDir) ExportCSV(csvPath string) error {
 	}
 
 	for _, dir := range r.TopDirs {
-		row := []string{dir.AbsPath, fmt.Sprintf("%d", dir.SizeBytes), dir.LastModified.Local().String()}
+		row := csvRow(dir)
 		err = csvWriter.Write(row)
 
 		if err != nil {
@@ -55,6 +55,13 @@ func (r RootDir) ExportCSV(csvPath string) error {
 
 	fmt.Printf("Exported CSV file %s\n", csvPath)
 	return nil
+}
+
+// csvRow returns a row of directory info for a CSV file.
+func csvRow(dir *Dir) []string {
+	size := fmt.Sprintf("%d", dir.SizeBytes)
+	timestamp := dir.LastModified.Local().String()
+	return []string{dir.AbsPath, size, timestamp}
 }
 
 // FindTops finds the top level directories within the provided root dir.
@@ -107,6 +114,7 @@ func (r *RootDir) CalcStats(concLimit uint8) error {
 				errors = append(errors, err) // collect error
 				mu.Unlock()
 			}
+			fmt.Printf("Processed %s\n", d.AbsPath)
 			<-sem      // release token
 			bar.Add(1) // increment progress bar
 		}(d)
